@@ -151,3 +151,20 @@ footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
   .stack dt{border-bottom:0;padding-bottom:0}
   .step{padding-left:50px}
 }
+
+/* scan-friendly cases and CV */
+.glance{display:grid;grid-template-columns:1.3fr 1.3fr 1fr;gap:1px;margin:0;background:var(--line);border-bottom:1px solid var(--line)}
+.glance>div{background:var(--surface);padding:18px 22px}
+.glance dt{font:600 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin:0 0 6px}
+.glance dd{margin:0;font-size:15px;line-height:1.5}
+.more{padding:0}
+.more summary{cursor:pointer;list-style:none;padding:16px 26px;font:600 13px var(--mono);letter-spacing:.06em;color:var(--blue);border-bottom:1px solid transparent}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before{content:"+";display:inline-block;width:22px;height:22px;line-height:20px;text-align:center;border:1px solid var(--blue);margin-right:12px}
+.more[open] summary::before{content:"\2212"}
+.more[open] summary{border-bottom-color:var(--line)}
+.more summary:hover{color:var(--gold)}
+.nav-cv{font:600 13px var(--mono);letter-spacing:.06em;color:#14182b;background:var(--gold);padding:6px 14px;text-decoration:none}
+.nav-cv:hover{background:#f2d27a;color:#14182b}
+@media(max-width:980px){.glance{grid-template-columns:1fr}}
+@media(max-width:640px){.glance>div{padding:14px 18px}.more summary{padding:14px 18px}.nav-cv{padding:5px 10px}}

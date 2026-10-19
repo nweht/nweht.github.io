@@ -21,6 +21,7 @@
 <li><a href="#stack">Stack</a></li>
 <li><a href="#contact">Contact</a></li>
 </ul></nav>
+<a class="nav-cv" href="assets/Nicolas_Weht_CV.pdf" download>CV</a>
 </div>
 </header>
 
@@ -39,6 +40,7 @@
 </div>
 <div class="cta">
 <a class="btn primary" href="#cases">Read the case studies</a>
+<a class="btn" href="assets/Nicolas_Weht_CV.pdf" download>Download CV</a>
 <a class="btn" href="#contact">Get in touch</a>
 </div>
 </div>
@@ -53,7 +55,7 @@
 <ul class="stats" aria-label="Highlights">
 <li><b>5.28M</b><span>rows validated, zero key changes</span></li>
 <li><b>9.9 s → 80 ms</b><span>critical query after root-causing</span></li>
-<li><b>0 → 51,265</b><span>payroll records recovered</span></li>
+<li><b>51,265</b><span>payroll records validated after a one-line fix</span></li>
 <li><b>223 tests</b><span>guarding a production migration</span></li>
 </ul>
 </aside>
@@ -64,16 +66,39 @@
 <section class="block" id="cases" aria-labelledby="cases-h">
 <div class="sec-head"><span class="no">01</span><h2 id="cases-h">Case studies</h2><span class="jp" aria-hidden="true">事例</span></div>
 <div class="sec-rule"></div>
-<p class="lead">Real incidents from a multi-tenant, event-sourced SaaS platform I worked on in 2026. Each one goes from symptom to root cause to a measured result. Details are anonymized: no customer names, hostnames or identifiers, and diagrams instead of screenshots.</p>
+<p class="lead">One end-to-end pipeline overview, then real incidents from a multi-tenant, event-sourced SaaS platform I worked on in 2026. Each case opens with impact, my role and tech; expand it for the full path from problem to result. Details are anonymized: no customer names, hostnames or identifiers, and diagrams instead of screenshots.</p>
 
 <article class="case">
 <aside>
 <div class="num">01</div>
-<h3>A platform-wide silent drop after an event-contract change</h3>
-<p class="tag">Data integrity · event-sourced pipeline</p>
-<ul class="chips"><li>PostgreSQL</li><li>SQL</li><li>Row-level security</li><li>Event contracts</li></ul>
+<h3>ELT and data platform pipelines, end to end</h3>
+<p class="tag">Ingestion · transformation · orchestration · quality</p>
 </aside>
 <div>
+<dl class="glance"><div><dt>Impact</dt><dd>Fresher data, less manual intervention and consistent financial and operational reporting</dd></div><div><dt>My role</dt><dd>Designed, built and maintained the pipelines across two roles</dd></div><div><dt>Tech</dt><dd>Snowflake, BigQuery, dbt Cloud, Airflow, Workato, Fabric Lakehouse, Python, SQL</dd></div></dl>
+<details class="more"><summary>Full breakdown: ingest to monitor</summary>
+<ol class="steps">
+<li class="step"><span class="node">1</span><h4>Ingest</h4><p>Automated ingestion from third-party systems and integrations with Workato, and from SFTP exports and SharePoint through scheduled pipelines, copy jobs and the Microsoft Graph API, across 30+ sources.</p></li>
+<li class="step"><span class="node">2</span><h4>Transform</h4><p>ELT workflows in Snowflake and BigQuery, with dbt Cloud models under git version control, tests and documentation. A medallion lakehouse (raw, staging, silver, curated) with Python and SQL transformations on top.</p></li>
+<li class="step"><span class="node">3</span><h4>Orchestrate</h4><p>Multi-step pipelines as Apache Airflow DAGs, plus scheduled pipelines in Microsoft Fabric.</p></li>
+<li class="step"><span class="node">4</span><h4>Control quality and failures</h4><p>Schema drift detection, deduplication of overlapping delta loads, data quality checks and reconciliation of source exports against curated tables. Secrets in Azure Key Vault; failures triaged and written up as runbooks.</p></li>
+<li class="step result"><span class="node">5</span><h4>Result</h4><p>Improved data freshness, less manual intervention, and accurate, consistent financial and operational reporting for finance, audit and operations teams.</p></li>
+</ol>
+<ol class="flow" aria-label="Simplified flow"><li>Sources (APIs, SFTP, SharePoint)</li><li>Raw</li><li>Staging</li><li>dbt models</li><li>Curated</li><li>Reports</li></ol>
+<p class="flow-note">Generalized from two roles; employer details omitted.</p>
+</details>
+</div>
+</article>
+
+<article class="case">
+<aside>
+<div class="num">02</div>
+<h3>A platform-wide silent drop after an event-contract change</h3>
+<p class="tag">Data integrity · event-sourced pipeline</p>
+</aside>
+<div>
+<dl class="glance"><div><dt>Impact</dt><dd>Zero key changes across 5.28M historical rows; new records visible again for all customers</dd></div><div><dt>My role</dt><dd>Traced the silent drop to evidence in production; designed, validated and shipped the fix</dd></div><div><dt>Tech</dt><dd>PostgreSQL, SQL, row-level security, event contracts</dd></div></dl>
+<details class="more"><summary>Full breakdown: problem to result</summary>
 <ol class="steps">
 <li class="step"><span class="node">1</span><h4>Problem</h4><p>After a backend upgrade of an event contract (V6 to V9), every newly created record vanished from customer reports, while internal admin views looked fine. Nothing errored.</p></li>
 <li class="step"><span class="node">2</span><h4>Root cause</h4><p>Reports filtered rows through row-level security keyed on a field that the new event version populated differently, so new records matched no tenant rule and were dropped silently.</p></li>
@@ -82,17 +107,19 @@
 </ol>
 <ol class="flow" aria-label="Simplified flow"><li>Publisher (V9 event)</li><li>Queue</li><li>Data lake</li><li class="bad">RLS key mismatch</li><li>Report</li></ol>
 <p class="flow-note">Simplified, synthetic diagram.</p>
+</details>
 </div>
 </article>
 
 <article class="case">
 <aside>
-<div class="num">02</div>
+<div class="num">03</div>
 <h3>Hidden loads and duplicate scans, traced upstream</h3>
 <p class="tag">Data quality · reconciliation · ingestion</p>
-<ul class="chips"><li>PostgreSQL</li><li>AWS Lambda</li><li>Reconciliation</li><li>Python</li></ul>
 </aside>
 <div>
+<dl class="glance"><div><dt>Impact</dt><dd>~10,080 hidden loads recovered and reconciled exactly; 43,700 duplicate groups traced to their source</dd></div><div><dt>My role</dt><dd>Found the defect, built the tenant-safe fix and traced the duplicates upstream</dd></div><div><dt>Tech</dt><dd>PostgreSQL, AWS Lambda, Python, reconciliation</dd></div></dl>
+<details class="more"><summary>Full breakdown: problem to result</summary>
 <ol class="steps">
 <li class="step"><span class="node">1</span><h4>Problem</h4><p>Two symptoms: roughly 10,080 receiving loads across about 30 accounts were missing from a customer-facing report for two months, and a data model had weak relationships because of duplicated records.</p></li>
 <li class="step"><span class="node">2</span><h4>Root cause</h4><p>A delete-cascade defect left dimension references unresolved, so security filters dropped the fact rows. Separately, 43,700 duplicate groups across 65 tenants came from ingestion functions doing a non-atomic check-then-insert.</p></li>
@@ -101,42 +128,47 @@
 </ol>
 <ol class="flow" aria-label="Simplified flow"><li>Ingestion (check, then insert)</li><li class="bad">Race: duplicate rows</li><li>Fact table</li><li>Relationships go many-to-many</li><li class="bad">Wrong report values</li></ol>
 <p class="flow-note">Simplified, synthetic diagram.</p>
-</div>
-</article>
-
-<article class="case">
-<aside>
-<div class="num">03</div>
-<h3>Payroll reports blank for ~530 tenants</h3>
-<p class="tag">Root-cause analysis · materialized views</p>
-<ul class="chips"><li>PostgreSQL</li><li>Materialized views</li><li>Window functions</li></ul>
-</aside>
-<div>
-<ol class="steps">
-<li class="step"><span class="node">1</span><h4>Problem</h4><p>A customer-facing payroll metric went blank across the platform after an event-schema change.</p></li>
-<li class="step"><span class="node">2</span><h4>Root cause</h4><p>A window function partitioned by a key that became NULL, inside a five-layer chain of materialized views.</p></li>
-<li class="step"><span class="node">3</span><h4>Solution</h4><p>A one-line fix, validated read-only end to end, plus an assessment of the five dependent views before proposing it.</p></li>
-<li class="step result"><span class="node">4</span><h4>Result</h4><p>0 to 51,265 records correctly assigned in validation; about 530 tenants affected.</p></li>
-</ol>
-<ol class="flow" aria-label="Simplified flow"><li>Event schema change</li><li class="bad">NULL partition key</li><li>MV layers 1 to 5</li><li>Metric</li></ol>
-<p class="flow-note">Simplified, synthetic diagram.</p>
+</details>
 </div>
 </article>
 
 <article class="case">
 <aside>
 <div class="num">04</div>
-<h3>Faster analytics on Aurora: 9.9 s to 80 ms</h3>
-<p class="tag">Performance · autovacuum · materialized views</p>
-<ul class="chips"><li>PostgreSQL / Aurora</li><li>SQL</li><li>Migrations</li><li>AWS CDK</li></ul>
+<h3>Payroll reports blank for ~530 tenants</h3>
+<p class="tag">Root-cause analysis · materialized views</p>
 </aside>
 <div>
+<dl class="glance"><div><dt>Impact</dt><dd>51,265 records validated as correctly assigned; ~530 tenants affected</dd></div><div><dt>My role</dt><dd>Root-caused through five view layers; validated the fix read-only and assessed downstream impact</dd></div><div><dt>Tech</dt><dd>PostgreSQL, materialized views, window functions</dd></div></dl>
+<details class="more"><summary>Full breakdown: problem to result</summary>
+<ol class="steps">
+<li class="step"><span class="node">1</span><h4>Problem</h4><p>A customer-facing payroll metric went blank across the platform after an event-schema change.</p></li>
+<li class="step"><span class="node">2</span><h4>Root cause</h4><p>A window function partitioned by a key that became NULL, inside a five-layer chain of materialized views.</p></li>
+<li class="step"><span class="node">3</span><h4>Solution</h4><p>A one-line fix, validated read-only end to end, plus an assessment of the five dependent views before proposing it.</p></li>
+<li class="step result"><span class="node">4</span><h4>Result</h4><p>In read-only validation, correctly assigned records went from 0 to 51,265, with downstream impact assessed before release. About 530 tenants were affected.</p></li>
+</ol>
+<ol class="flow" aria-label="Simplified flow"><li>Event schema change</li><li class="bad">NULL partition key</li><li>MV layers 1 to 5</li><li>Metric</li></ol>
+<p class="flow-note">Simplified, synthetic diagram.</p>
+</details>
+</div>
+</article>
+
+<article class="case">
+<aside>
+<div class="num">05</div>
+<h3>Faster analytics on Aurora: 9.9 s to 80 ms</h3>
+<p class="tag">Performance · autovacuum · materialized views</p>
+</aside>
+<div>
+<dl class="glance"><div><dt>Impact</dt><dd>Critical query 9.9 s to 80 ms; view refresh 15+ min to 40 s; data lag 7 days to 1 day</dd></div><div><dt>My role</dt><dd>Diagnosed the causes, tuned the database and shipped the migrations</dd></div><div><dt>Tech</dt><dd>PostgreSQL / Aurora, SQL, migrations, AWS CDK</dd></div></dl>
+<details class="more"><summary>Full breakdown: problem to result</summary>
 <ol class="steps">
 <li class="step"><span class="node">1</span><h4>Problem</h4><p>Slow, failing refreshes for reporting workloads, including disk-full errors from a compute-heavy calculation in the refresh path.</p></li>
 <li class="step"><span class="node">2</span><h4>Root cause</h4><p>Autovacuum lag and a dirty visibility map on a 6M-row table slowed a critical query; a heavy revenue calculation spilled temp files.</p></li>
 <li class="step"><span class="node">3</span><h4>Solution</h4><p>Per-table autovacuum tuning via a migration, index-aware SQL guided by <code>EXPLAIN (ANALYZE, BUFFERS)</code>, and the revenue calculation moved into a scheduled materialized view.</p></li>
 <li class="step result"><span class="node">4</span><h4>Result</h4><p>Critical query ~9.9 s to ~80 ms; an extraction from 73 s to 20 s; materialized-view refresh from 15+ min to 40 s, and data lag from 7 days to 1 day.</p></li>
 </ol>
+</details>
 </div>
 </article>
 
@@ -196,6 +228,7 @@
 <p>Open to Senior Data Engineer roles, remote. The fastest way to reach me is email.</p>
 <div class="links">
 <a class="btn primary" href="mailto:nicoweht@gmail.com">nicoweht@gmail.com</a>
+<a class="btn" href="assets/Nicolas_Weht_CV.pdf" download>Download CV</a>
 <a class="btn" href="https://linkedin.com/in/nicolasweht">LinkedIn</a>
 <a class="btn" href="https://github.com/nweht">GitHub</a>
 </div>
