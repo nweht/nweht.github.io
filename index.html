@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nicolás Weht · Senior Data Engineer</title>
+<meta name="description" content="Senior Data Engineer portfolio: Python, SQL, ELT, dbt, Airflow, AWS and data integrity. Anonymized case studies from production multi-tenant pipelines.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+<div class="wrap">
+<a class="brand" href="#top">Nicolás Weht</a>
+<nav aria-label="Main"><ul>
+<li><a href="#cases">Case studies</a></li>
+<li><a href="#bi">Power BI</a></li>
+<li><a href="#projects">Projects</a></li>
+<li><a href="#stack">Stack</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul></nav>
+<button id="theme" type="button" aria-pressed="false">Dark theme</button>
+</div>
+</header>
+
+<main id="main">
+<div class="wrap">
+<section class="hero" id="top" style="border-top:0">
+<h1>I find where data silently goes missing, and fix it for good.</h1>
+<p class="role">Senior Data Engineer · Python, SQL, ELT, dbt, Airflow, AWS</p>
+<p>I'm a data engineer with 5+ years building production pipelines in Python and SQL, on Snowflake, BigQuery and PostgreSQL. I care most about data integrity and automation: I trace silent data loss back to evidence in production, ship tested and reviewed fixes, and write down what I learned so it doesn't happen twice.</p>
+<p>I work remotely from Córdoba, Argentina, and use English (C1) daily with engineering, product and business teams.</p>
+<ul class="stats" aria-label="Highlights">
+<li><b>5.28M</b><span>historical rows validated with zero key changes</span></li>
+<li><b>9.9 s → 80 ms</b><span>critical query after root-causing autovacuum lag</span></li>
+<li><b>0 → 51,265</b><span>payroll records recovered by a one-line fix</span></li>
+<li><b>223 tests</b><span>guarding a Python/SAM to TypeScript/CDK migration</span></li>
+</ul>
+<div class="cta">
+<a class="btn primary" href="#cases">Read the case studies</a>
+<a class="btn" href="#contact">Get in touch</a>
+</div>
+</section>
+
+<section id="cases" aria-labelledby="cases-h">
+<h2 id="cases-h">Case studies</h2>
+<p class="lead">Real incidents from a multi-tenant, event-sourced SaaS platform I worked on in 2026. Details are anonymized: no customer names, hostnames or identifiers, and diagrams instead of screenshots.</p>
+
+<article class="case">
+<h3>1. A platform-wide silent drop after an event-contract change</h3>
+<p class="tag">Data integrity · event-sourced pipeline · SQL</p>
+<dl>
+<dt>Problem</dt><dd>After a backend upgrade of an event contract (V6 to V9), every newly created record vanished from customer reports, while internal admin views looked fine. Nothing errored.</dd>
+<dt>Root cause</dt><dd>Reports filtered rows through row-level security keyed on a field that the new event version populated differently, so new records matched no tenant rule and were dropped silently.</dd>
+<dt>Solution</dt><dd>A backward-compatible key fix (<code>COALESCE</code> across old and new fields), validated in SQL before release against the full history.</dd>
+<dt>Result</dt><dd class="result">Zero key changes across 5.28M historical rows; new records visible again for all customers.</dd>
+<dt>Stack</dt><dd><ul class="chips"><li>PostgreSQL</li><li>SQL</li><li>Row-level security</li><li>Event contracts</li></ul></dd>
+</dl>
+<ol class="flow" aria-label="Simplified flow"><li>Publisher (V9 event)</li><li>Queue</li><li>Data lake</li><li class="bad">RLS key mismatch</li><li>Report</li></ol>
+<p class="note">Simplified, synthetic diagram.</p>
+</article>
+
+<article class="case">
+<h3>2. Hidden loads and duplicate scans, traced upstream</h3>
+<p class="tag">Data quality · reconciliation · ingestion</p>
+<dl>
+<dt>Problem</dt><dd>Two symptoms: roughly 10,080 receiving loads across about 30 accounts were missing from a customer-facing report for two months, and a data model had weak relationships because of duplicated records.</dd>
+<dt>Root cause</dt><dd>A delete-cascade defect left dimension references unresolved, so security filters dropped the fact rows. Separately, 43,700 duplicate groups across 65 tenants came from ingestion functions doing a non-atomic check-then-insert.</dd>
+<dt>Solution</dt><dd>A tenant-safe fallback in the query layer for the hidden loads, reconciled exactly against the data lake. For the duplicates, I traced them to the ingestion code rather than masking them downstream.</dd>
+<dt>Result</dt><dd class="result">~10,080 loads recovered and matched exactly to the lake; the duplicates were quantified and traced to their source.</dd>
+<dt>Stack</dt><dd><ul class="chips"><li>PostgreSQL</li><li>AWS Lambda</li><li>Reconciliation queries</li><li>Python</li></ul></dd>
+</dl>
+<ol class="flow" aria-label="Simplified flow"><li>Ingestion (check, then insert)</li><li class="bad">Race: duplicate rows</li><li>Fact table</li><li>Relationships go many-to-many</li><li class="bad">Wrong report values</li></ol>
+<p class="note">Simplified, synthetic diagram.</p>
+</article>
+
+<article class="case">
+<h3>3. Payroll reports blank for ~530 tenants</h3>
+<p class="tag">Root-cause analysis · materialized views · window functions</p>
+<dl>
+<dt>Problem</dt><dd>A customer-facing payroll metric went blank across the platform after an event-schema change.</dd>
+<dt>Root cause</dt><dd>A window function partitioned by a key that became NULL, inside a five-layer chain of materialized views.</dd>
+<dt>Solution</dt><dd>A one-line fix, validated read-only end to end, plus an assessment of the five dependent views before proposing it.</dd>
+<dt>Result</dt><dd class="result">0 to 51,265 records correctly assigned in validation; about 530 tenants affected.</dd>
+<dt>Stack</dt><dd><ul class="chips"><li>PostgreSQL</li><li>Materialized views</li><li>Window functions</li></ul></dd>
+</dl>
+<ol class="flow" aria-label="Simplified flow"><li>Event schema change</li><li class="bad">NULL partition key</li><li>MV layers 1 to 5</li><li>Metric</li></ol>
+<p class="note">Simplified, synthetic diagram.</p>
+</article>
+
+<article class="case">
+<h3>4. Faster analytics on Aurora: 9.9 s to 80 ms, 15 min to 40 s</h3>
+<p class="tag">Performance · PostgreSQL · autovacuum · materialized views</p>
+<dl>
+<dt>Problem</dt><dd>Slow, failing refreshes for reporting workloads, including disk-full errors from a compute-heavy calculation in the refresh path.</dd>
+<dt>Root cause</dt><dd>Autovacuum lag and a dirty visibility map on a 6M-row table slowed a critical query; a heavy revenue calculation spilled temp files.</dd>
+<dt>Solution</dt><dd>Per-table autovacuum tuning via a migration, index-aware SQL guided by <code>EXPLAIN (ANALYZE, BUFFERS)</code>, and the revenue calculation moved into a scheduled materialized view.</dd>
+<dt>Result</dt><dd class="result">Critical query ~9.9 s to ~80 ms; an extraction from 73 s to 20 s; materialized-view refresh from 15+ min to 40 s, and data lag from 7 days to 1 day.</dd>
+<dt>Stack</dt><dd><ul class="chips"><li>PostgreSQL / Aurora</li><li>SQL</li><li>Migrations</li><li>AWS CDK</li></ul></dd>
+</dl>
+</article>
+
+<div class="card">
+<h3>Also shipped: Python/SAM to TypeScript/CDK migration</h3>
+<p>Led the migration of three production Lambdas that deliver scheduled reports to 50+ customer channels: byte-identical output, a 223-test suite with mutation testing, a controlled cutover through the deployment pipeline, and resolution of seven post-release issues. Along the way I fixed a duplicate-run incident traced in CloudWatch to a timeout plus async retry, and cut per-tenant query time from over 3 minutes to under 1 second.</p>
+</div>
+</section>
+
+<section id="bi" aria-labelledby="bi-h">
+<h2 id="bi-h">Power BI and semantic modeling</h2>
+<p class="lead">My secondary skill. I treat reports as the last layer of a pipeline: models, refresh strategy and security rules are engineered and validated against the source, not eyeballed.</p>
+<div class="grid2">
+<div class="card"><h3>Measures that lied</h3><p>Audited a customer-facing model and fixed measures with mismatched denominators that <strong>overstated defect rates by ~9.5 percentage points</strong>, a fan-out that inflated another rate by ~5 points, and a measure that under-reported by 42%. Every on-screen number was validated against PostgreSQL.</p></div>
+<div class="card"><h3>Stale numbers after a price load</h3><p>Diagnosed a non-uniform +2% to +38% mismatch as <strong>incremental-refresh partitions that were never reprocessed</strong> (93.7% of one customer's scans fell outside the refresh window), proved it by replaying the calculation with old prices, and defined a targeted partition-reprocess step.</p></div>
+<div class="card"><h3>Business logic moved into SQL</h3><p>Led the move of logic from embedded Power Query/native SQL into <strong>35 PostgreSQL reporting views</strong> packaged as migrations with rollback, and wrote Python tooling that parses PBIP/TMDL to inventory model partitions.</p></div>
+<div class="card"><h3>Scoping a migration with code</h3><p>Parsed report and model definitions with Python to cut <strong>146 measures down to the 47 in use</strong> on visible pages, which scoped a move to an in-house analytics platform.</p></div>
+<div class="card"><h3>Capacity and refresh reliability</h3><p>Diagnosed Fabric capacity alerts as interactive bursts on top of unchanged background refresh and cut refresh windows from 5 years to 1 across 17 tables, bringing utilisation to <strong>~50%</strong>. Restored stalled refreshes by isolating an expired credential and wrote a triage runbook.</p></div>
+<div class="card"><h3>Row-level security done right</h3><p>Fixed quality visuals that had failed under RLS for ~3 months by identifying an ambiguous many-to-many path and deactivating it after auditing 11 reports. Debugged embed issues by instrumenting the real embedded session.</p></div>
+</div>
+<p class="note">Earlier roles: Fabric lakehouse with medallion layers and schema-drift checks; Power BI semantic models and DAX for executive KPIs; a finance request app on Power Apps, Dataverse and Power BI across DEV/UAT/PROD.</p>
+</section>
+
+<section id="projects" aria-labelledby="projects-h">
+<h2 id="projects-h">Projects</h2>
+<p class="lead">Work for employers is confidential, so these are clean projects on synthetic data.</p>
+<div class="grid2">
+<div class="card">
+<h3>Power BI Reporting Portfolio</h3>
+<p>Three reports built as code (Power BI Projects with TMDL models, JSON pages and a custom theme) on deterministic synthetic data generated in Python: <strong>Harvest Performance</strong> (orchard operations), <strong>Packhouse Fruit Quality</strong> and <strong>League of Legends Ranked Meta</strong>. Includes data tests and a structural checker that run in CI.</p>
+<p><a href="https://github.com/nweht/power-bi-reporting-portfolio">Repository</a> · <a href="https://nweht.github.io/power-bi-reporting-portfolio/">Gallery</a></p>
+</div>
+<div class="card">
+<h3>BI demo (secondary skill)</h3>
+<p>A synthetic operations report showing semantic modeling and dashboard design in the style of Power BI.</p>
+<p><a href="draft_report.html">Open the demo</a></p>
+</div>
+</div>
+</section>
+
+<section id="stack" aria-labelledby="stack-h">
+<h2 id="stack-h">Stack</h2>
+<dl>
+<dt>Languages</dt><dd>Python (psycopg, boto3, pandas, pytest), SQL, TypeScript</dd>
+<dt>Data platforms</dt><dd>Snowflake, BigQuery, PostgreSQL/Aurora, dbt Cloud, Apache Airflow</dd>
+<dt>Practices</dt><dd>ELT, data modeling, data quality and reconciliation, schema drift handling, deduplication, performance tuning, root-cause analysis</dd>
+<dt>Cloud &amp; DevOps</dt><dd>AWS (Lambda, CDK, EventBridge, CloudWatch, IAM, Secrets Manager), Docker, Git/GitHub, CI/CD, automated testing</dd>
+<dt>BI (secondary)</dt><dd>Power BI, DAX, semantic modeling, row-level security, Microsoft Fabric</dd>
+</dl>
+</section>
+
+<section id="contact" aria-labelledby="contact-h">
+<h2 id="contact-h">Contact</h2>
+<p class="lead">Open to Senior Data Engineer roles, remote.</p>
+<p><a href="mailto:nicoweht@gmail.com">nicoweht@gmail.com</a> · <a href="https://linkedin.com/in/nicolasweht">LinkedIn</a> · <a href="https://github.com/nweht">GitHub</a></p>
+</section>
+</div>
+</main>
+
+<footer><div class="wrap">Case studies are anonymized and simplified.</div></footer>
+<script src="site.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shipping operations report - draft</title>
+<style>
+  :root{--navy:#14223b;--ink:#1c2a3f;--muted:#6b7a90;--line:#dfe5ee;--bg:#eef2f7;--card:#fff;--teal:#0f8b8d;--blue:#3d7cc9;--amber:#f2a541;--coral:#e4572e;--green:#2e9e6a;--gray:#9aa7b8}
+  *{box-sizing:border-box}
+  body{margin:0;background:#cfd6e0;font-family:"Segoe UI",system-ui,Arial,sans-serif;color:var(--ink)}
+  #wrap{width:100%;display:flex;justify-content:center;padding:16px 0;overflow:hidden}
+  #canvas{width:1280px;height:720px;background:var(--bg);transform-origin:top left;position:relative;box-shadow:0 2px 14px rgba(0,0,0,.18)}
+  header{height:64px;background:var(--navy);color:#fff;display:flex;align-items:center;gap:20px;padding:0 24px}
+  .logo{width:30px;height:30px;border-radius:6px;background:var(--teal);display:grid;place-items:center;font-weight:700}
+  .title{font-size:18px;font-weight:600;white-space:nowrap}
+  nav{display:flex;gap:4px;margin-left:12px}
+  nav button{background:transparent;color:#b9c6da;border:0;padding:8px 14px;font-size:14px;border-radius:6px;cursor:pointer}
+  nav button.on{background:rgba(255,255,255,.14);color:#fff;font-weight:600}
+  .sp{flex:1}
+  header select,.seg button{font:inherit;font-size:13px}
+  header select{background:#223350;color:#fff;border:1px solid #3a4d6e;border-radius:6px;padding:6px 8px}
+  .lang button{background:transparent;border:1px solid #3a4d6e;color:#b9c6da;padding:5px 9px;font-size:12px;cursor:pointer}
+  .lang button:first-child{border-radius:6px 0 0 6px}.lang button:last-child{border-radius:0 6px 6px 0;border-left:0}
+  .lang button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  #body{padding:20px 24px;height:656px}
+  .row{display:flex;gap:16px}
+  .card{background:var(--card);border-radius:8px;border:1px solid var(--line);padding:14px 16px;position:relative}
+  .kpi{flex:1;height:96px}
+  .kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .kpi .v{font-size:28px;font-weight:600;margin-top:4px}
+  .kpi .d{font-size:12px;margin-top:2px}
+  .up{color:var(--green)}.down{color:var(--coral)}.flat{color:var(--muted)}
+  .h{font-size:14px;font-weight:600;margin:0 0 8px}
+  .sub{font-size:12px;color:var(--muted);margin:-4px 0 8px}
+  .seg{display:inline-flex;margin-left:auto}
+  .seg button{background:#fff;border:1px solid var(--line);padding:5px 10px;cursor:pointer;color:var(--muted)}
+  .seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0;border-left:0}
+  .seg button.on{background:var(--teal);border-color:var(--teal);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+  td{padding:9px 8px;border-bottom:1px solid #eef1f6}
+  td.n,th.n{text-align:right}
+  .bar{height:8px;border-radius:4px;background:#e8eef6}.bar i{display:block;height:100%;border-radius:4px;background:var(--teal)}
+  .note{background:#fff8ea;border:1px solid #f3dcae;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.5}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:var(--c);vertical-align:-1px}
+  .tag{position:absolute;right:12px;bottom:8px;font-size:11px;color:var(--gray)}
+  svg text{font-family:inherit}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="canvas">
+  <header>
+    <div class="logo">S</div>
+    <div class="title" id="t-title"></div>
+    <nav id="nav"></nav>
+    <div class="sp"></div>
+    <select id="tenant"></select>
+    <div class="lang"><button id="l-en">EN</button><button id="l-es">ES</button></div>
+  </header>
+  <div id="body"></div>
+</div></div>
+
+<script>
+const I18N={
+ en:{title:'Shipping operations',overview:'Overview',depots:'Depots',carriers:'Carriers',quality:'Data quality',
+  scans:'Scans',weight:'Weight (t)',avg:'Avg kg per scan',p95:'P95 kg per scan',active:'Active depots',unattr:'Unattributed scans',
+  vsPrev:'vs previous period',weeks:'weeks',scansPerWeek:'Scans per week',topDepots:'Top depots by scans',carrierShare:'Share of scans by carrier',
+  allTenants:'All tenants',depot:'Depot',share:'Share',trend:'Trend',weightByCarrier:'Weight per week by carrier (t)',carrier:'Carrier',
+  uPct:'Unattributed scans per week (%)',incident:'Contract change',fixed:'Fix applied',
+  insightT:'What changed',
+  insight:(d)=>`Scans ${d>=0?'grew':'fell'} ${Math.abs(d).toFixed(1)}% against the previous period. The largest depot concentrates the biggest share of volume.`,
+  qNote:'In week 8 a new event contract renamed the depot key. Scans kept arriving but could not be attributed to a depot, so depot reports under-counted by up to 31%. The key derivation was fixed in week 11 without touching historical rows.',
+  peak:'Peak',weeksAff:'Weeks affected',now:'Latest week',draft:'Draft mock-up with synthetic data',
+  howT:'How it was handled',steps:[['Detect','A data test on the depot key fails before the report is built.'],['Prove','The fix is checked against every historical row: zero keys change.'],['Fix','Only missing keys are filled, reading the old field first.']]},
+ es:{title:'Operaciones de envíos',overview:'Resumen',depots:'Depósitos',carriers:'Transportistas',quality:'Calidad de datos',
+  scans:'Escaneos',weight:'Peso (t)',avg:'Kg promedio por escaneo',p95:'Kg P95 por escaneo',active:'Depósitos activos',unattr:'Escaneos sin atribuir',
+  vsPrev:'vs periodo anterior',weeks:'semanas',scansPerWeek:'Escaneos por semana',topDepots:'Depósitos con más escaneos',carrierShare:'Participación de escaneos por transportista',
+  allTenants:'Todos los tenants',depot:'Depósito',share:'Participación',trend:'Tendencia',weightByCarrier:'Peso por semana y transportista (t)',carrier:'Transportista',
+  uPct:'Escaneos sin atribuir por semana (%)',incident:'Cambio de contrato',fixed:'Arreglo aplicado',
+  insightT:'Qué cambió',
+  insight:(d)=>`Los escaneos ${d>=0?'crecieron':'bajaron'} ${Math.abs(d).toFixed(1)}% frente al periodo anterior. El depósito más grande concentra la mayor parte del volumen.`,
+  qNote:'En la semana 8 un nuevo contrato de eventos renombró la clave del depósito. Los escaneos seguían llegando pero no se podían atribuir a un depósito, y los reportes por depósito subcontaban hasta un 31%. La clave se corrigió en la semana 11 sin tocar las filas históricas.',
+  peak:'Pico',weeksAff:'Semanas afectadas',now:'Última semana',draft:'Borrador con datos sintéticos',
+  howT:'Cómo se resolvió',steps:[['Detectar','Un test de datos sobre la clave del depósito falla antes de construir el reporte.'],['Probar','El arreglo se verifica contra cada fila histórica: ninguna clave cambia.'],['Arreglar','Solo se completan las claves faltantes, leyendo primero el campo anterior.']]}
+};
+let lang='en',page='overview',tenantId='all',period=4;
+
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const W=12, start=new Date(2026,6,20);
+const weekLabels=Array.from({length:W},(_,i)=>{const d=new Date(start);d.setDate(d.getDate()+7*i);return d.toLocaleDateString('en',{month:'short',day:'numeric'})});
+const CARRIERS=['Northwind Freight','BlueRiver Logistics','Summit Express','Harbor Line'];
+const CC=['#0f8b8d','#3d7cc9','#f2a541','#9aa7b8'];
+const TENANTS=[
+ {id:'t1',name:'Acme Foods',f:1,depots:['Córdoba hub','Rosario depot','Mendoza depot','Salta depot','Tucumán depot'],share:[.34,.26,.18,.13,.09],car:[.38,.27,.22,.13]},
+ {id:'t2',name:'Delta Retail',f:.6,depots:['Buenos Aires hub','La Plata depot','Mar del Plata depot','Bahía Blanca depot'],share:[.42,.24,.19,.15],car:[.30,.34,.2,.16]},
+ {id:'t3',name:'Orion Parts',f:.35,depots:['Neuquén hub','Bariloche depot','Trelew depot'],share:[.5,.3,.2],car:[.25,.25,.30,.20]}
+];
+const INC=[0,0,0,0,0,0,0,.30,.31,.29,0,0];
+function split(total,shares,r){
+  const raw=shares.map(s=>s*(0.9+r()*.2)),sm=raw.reduce((a,b)=>a+b,0);let rem=total;
+  return raw.map((x,i)=>{if(i===raw.length-1)return rem;const v=Math.round(total*x/sm);rem-=v;return v});
+}
+function build(t){
+  const r=rng(t.id.charCodeAt(1)*97);
+  const total=Array.from({length:W},(_,w)=>Math.round(2000*t.f*(1+.035*w)*(0.94+r()*.12)));
+  const dW=total.map(x=>split(x,t.share,r)),cW=total.map(x=>split(x,t.car,r));
+  const depots=t.depots.map((n,i)=>({name:n,scans:dW.map(a=>a[i])}));
+  const carriers=CARRIERS.map((n,i)=>({name:n,scans:cW.map(a=>a[i])}));
+  const avg=total.map(()=>18+r()*3);
+  return {total,depots,carriers,avg};
+}
+const ceilTo=(v,s)=>Math.ceil(v/s)*s;
+const DATA=Object.fromEntries(TENANTS.map(t=>[t.id,build(t)]));
+function sumArr(a,b){return a.map((x,i)=>x+(b[i]||0))}
+function model(id){
+  if(id!=='all')return DATA[id];
+  const ids=TENANTS.map(t=>t.id);
+  const total=ids.reduce((a,i)=>sumArr(a,DATA[i].total),Array(W).fill(0));
+  const avg=total.map((_,w)=>ids.reduce((s,i)=>s+DATA[i].avg[w]*DATA[i].total[w],0)/total[w]);
+  const carriers=CARRIERS.map((n,c)=>({name:n,scans:ids.reduce((a,i)=>sumArr(a,DATA[i].carriers[c].scans),Array(W).fill(0))}));
+  const depots=ids.flatMap(i=>DATA[i].depots).sort((a,b)=>b.scans.reduce((x,y)=>x+y,0)-a.scans.reduce((x,y)=>x+y,0));
+  return {total,avg,carriers,depots};
+}
+const sum=(a,f,t)=>a.slice(f,t).reduce((x,y)=>x+y,0);
+function kpis(m,p){
+  const cur=[W-p,W], prev=[W-2*p,W-p];
+  const f=(a,b)=>({cur:a(cur),prev:a(prev)});
+  const scans=f(r=>sum(m.total,...r));
+  const wt=f(r=>m.total.slice(...r).reduce((s,x,i)=>s+x*m.avg[r[0]+i],0)/1000);
+  const av=f(r=>m.total.slice(...r).reduce((s,x,i)=>s+x*m.avg[r[0]+i],0)/sum(m.total,...r));
+  const un=f(r=>INC.slice(...r).reduce((s,x,i)=>s+x*m.total[r[0]+i],0)/sum(m.total,...r)*100);
+  const act={cur:m.depots.length,prev:m.depots.length};
+  const p95={cur:av.cur*1.82,prev:av.prev*1.82};
+  return {scans,wt,av,p95,act,un};
+}
+const pct=(c,p)=>p?((c-p)/p*100):0;
+const fmt=(n,d=0)=>n.toLocaleString('en',{minimumFractionDigits:d,maximumFractionDigits:d});
+function kpiCard(label,o,d=0,suf='',invert=false){
+  const dl=pct(o.cur,o.prev), good=invert?dl<0:dl>0, cls=Math.abs(dl)<.05?'flat':(good?'up':'down');
+  const arrow=Math.abs(dl)<.05?'•':(dl>0?'▲':'▼');
+  return `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(o.cur,d)}${suf}</div><div class="d ${cls}">${arrow} ${Math.abs(dl).toFixed(1)}% ${I18N[lang].vsPrev}</div></div>`;
+}
+/* charts */
+function columns(vals,labels,w,h,color='#0f8b8d'){
+  const m={l:36,r:8,t:8,b:22},iw=w-m.l-m.r,ih=h-m.t-m.b,max=ceilTo(Math.max(...vals)*1.02,Math.max(400,Math.pow(10,Math.floor(Math.log10(Math.max(...vals)))-0)*0.4)),bw=iw/vals.length;
+  let s=`<svg width="${w}" height="${h}">`;
+  for(let i=0;i<=4;i++){const y=m.t+ih-ih*i/4;s+=`<line x1="${m.l}" x2="${w-m.r}" y1="${y}" y2="${y}" stroke="#e6ebf2"/><text x="${m.l-6}" y="${y+4}" font-size="10" fill="#6b7a90" text-anchor="end">${fmt(max*i/4/1000,1)}k</text>`}
+  vals.forEach((v,i)=>{const bh=ih*v/max,x=m.l+i*bw+bw*.18,y=m.t+ih-bh;
+    const cur=i>=vals.length-period;
+    s+=`<rect x="${x}" y="${y}" width="${bw*.64}" height="${bh}" rx="2" fill="${cur?color:'#b8d9da'}"><title>${labels[i]}: ${fmt(v)}</title></rect>`;
+    if(i%2===0)s+=`<text x="${x+bw*.32}" y="${h-6}" font-size="10" fill="#6b7a90" text-anchor="middle">${labels[i]}</text>`});
+  return s+'</svg>';
+}
+function hbars(items,w,rowH=34){
+  const max=Math.max(...items.map(i=>i.v));let s=`<svg width="${w}" height="${items.length*rowH}">`;
+  items.forEach((it,i)=>{const y=i*rowH,bw=(w-190-60)*it.v/max;
+    s+=`<text x="0" y="${y+20}" font-size="12" fill="#1c2a3f">${it.n}</text><rect x="150" y="${y+8}" width="${bw}" height="16" rx="3" fill="#0f8b8d"/><text x="${156+bw}" y="${y+20}" font-size="12" fill="#1c2a3f">${fmt(it.v)}</text>`});
+  return s+'</svg>';
+}
+function donut(items,size){
+  const tot=items.reduce((s,i)=>s+i.v,0),r=size/2-8,c=size/2;let a=-Math.PI/2,s=`<svg width="${size}" height="${size}">`;
+  items.forEach((it,i)=>{const ang=2*Math.PI*it.v/tot,x1=c+r*Math.cos(a),y1=c+r*Math.sin(a);a+=ang;const x2=c+r*Math.cos(a),y2=c+r*Math.sin(a);
+    s+=`<path d="M${x1} ${y1} A${r} ${r} 0 ${ang>Math.PI?1:0} 1 ${x2} ${y2}" fill="none" stroke="${CC[i]}" stroke-width="26"><title>${it.n}: ${(it.v/tot*100).toFixed(1)}%</title></path>`});
+  return s+`<text x="${c}" y="${c-2}" text-anchor="middle" font-size="20" font-weight="600" fill="#1c2a3f">${fmt(tot)}</text><text x="${c}" y="${c+16}" text-anchor="middle" font-size="11" fill="#6b7a90">${I18N[lang].scans.toLowerCase()}</text></svg>`;
+}
+function spark(vals,w=110,h=28){
+  const mx=Math.max(...vals),mn=Math.min(...vals),pts=vals.map((v,i)=>`${i*(w/(vals.length-1))},${h-3-(h-6)*(v-mn)/((mx-mn)||1)}`).join(' ');
+  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="#3d7cc9" stroke-width="1.8"/></svg>`;
+}
+function stacked(carriers,w,h){
+  const m={l:36,r:8,t:8,b:22},iw=w-m.l-m.r,ih=h-m.t-m.b,bw=iw/W;
+  const tot=Array.from({length:W},(_,i)=>carriers.reduce((s,c)=>s+c.scans[i]*DATA_AVG(i),0)/1000), max=ceilTo(Math.max(...tot)*1.02,Math.max(4,Math.pow(10,Math.floor(Math.log10(Math.max(...tot))))*0.4));
+  let s=`<svg width="${w}" height="${h}">`;
+  for(let i=0;i<=4;i++){const y=m.t+ih-ih*i/4;s+=`<line x1="${m.l}" x2="${w-m.r}" y1="${y}" y2="${y}" stroke="#e6ebf2"/><text x="${m.l-6}" y="${y+4}" font-size="10" fill="#6b7a90" text-anchor="end">${fmt(max*i/4)}</text>`}
+  for(let i=0;i<W;i++){let y=m.t+ih;carriers.forEach((c,k)=>{const v=c.scans[i]*DATA_AVG(i)/1000,bh=ih*v/max;y-=bh;s+=`<rect x="${m.l+i*bw+bw*.18}" y="${y}" width="${bw*.64}" height="${bh}" fill="${CC[k]}"><title>${c.name} ${weekLabels[i]}: ${fmt(v,1)} t</title></rect>`});
+    if(i%2===0)s+=`<text x="${m.l+i*bw+bw*.5}" y="${h-6}" font-size="10" fill="#6b7a90" text-anchor="middle">${weekLabels[i]}</text>`}
+  return s+'</svg>';
+}
+const DATA_AVG=i=>model(tenantId).avg[i];
+function line(vals,w,h){
+  const m={l:40,r:12,t:10,b:24},iw=w-m.l-m.r,ih=h-m.t-m.b,max=35,st=iw/(W-1);
+  const X=i=>m.l+i*st,Y=v=>m.t+ih-ih*v/max;let s=`<svg width="${w}" height="${h}">`;
+  [0,10,20,30].forEach(v=>s+=`<line x1="${m.l}" x2="${w-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e6ebf2"/><text x="${m.l-6}" y="${Y(v)+4}" font-size="10" fill="#6b7a90" text-anchor="end">${v}%</text>`);
+  s+=`<rect x="${X(7)}" y="${m.t}" width="${X(10)-X(7)}" height="${ih}" fill="#fdeee9"/>`;
+  s+=`<polyline fill="none" stroke="#e4572e" stroke-width="2.2" points="${vals.map((v,i)=>`${X(i)},${Y(v)}`).join(' ')}"/>`;
+  vals.forEach((v,i)=>{s+=`<circle cx="${X(i)}" cy="${Y(v)}" r="3" fill="#e4572e"><title>${weekLabels[i]}: ${v.toFixed(1)}%</title></circle>`;if(i%2===0)s+=`<text x="${X(i)}" y="${h-6}" font-size="10" fill="#6b7a90" text-anchor="middle">${weekLabels[i]}</text>`});
+  s+=`<text x="${X(7)+4}" y="${m.t+12}" font-size="11" fill="#b8431f">${I18N[lang].incident}</text><line x1="${X(10)}" x2="${X(10)}" y1="${m.t}" y2="${m.t+ih}" stroke="#2e9e6a" stroke-dasharray="4 3"/><text x="${X(10)-4}" y="${m.t+28}" font-size="11" fill="#2e9e6a" text-anchor="end">${I18N[lang].fixed}</text>`;
+  return s+'</svg>';
+}
+/* pages */
+function pOverview(m){
+  const k=kpis(m,period),L=I18N[lang];
+  const wk=m.total.slice(0);
+  const dtot=m.depots.map(d=>({n:d.name,v:sum(d.scans,W-period,W)})).sort((a,b)=>b.v-a.v).slice(0,5);
+  const car=m.carriers.map(c=>({n:c.name,v:sum(c.scans,W-period,W)}));
+  const d=pct(k.scans.cur,k.scans.prev);
+  return `<div class="row">${kpiCard(L.scans,k.scans)}${kpiCard(L.weight,k.wt,1)}${kpiCard(L.avg,k.av,1)}${kpiCard(L.p95,k.p95,1)}${kpiCard(L.active,k.act)}${kpiCard(L.unattr,k.un,1,'%',true)}</div>
+  <div class="row" style="margin-top:16px"><div class="card" style="width:740px;height:262px"><div style="display:flex;align-items:center"><p class="h">${L.scansPerWeek}</p><div class="seg">${[4,6].map(p=>`<button data-p="${p}" class="${p===period?'on':''}">${p} ${L.weeks}</button>`).join('')}</div></div>${columns(wk,weekLabels,704,200)}</div>
+  <div class="card" style="flex:1;height:262px"><p class="h">${L.carrierShare}</p><div style="display:flex;align-items:center;gap:14px">${donut(car,170)}<div class="legend" style="flex-direction:column;gap:8px;margin:0">${CARRIERS.map((c,i)=>`<span style="--c:${CC[i]}">${c}</span>`).join('')}</div></div></div></div>
+  <div class="row" style="margin-top:16px"><div class="card" style="width:740px;height:222px"><p class="h">${L.topDepots}</p>${hbars(dtot,704,34)}</div>
+  <div class="card" style="flex:1;height:222px"><p class="h">${L.insightT}</p><div class="note">${L.insight(d)}</div></div></div>`;
+}
+function pDepots(m){
+  const L=I18N[lang],tot=m.depots.reduce((s,d)=>s+sum(d.scans,W-period,W),0);
+  const rows=m.depots.slice(0,7).map(d=>{const v=sum(d.scans,W-period,W);return `<tr><td>${d.name}</td><td class="n">${fmt(v)}</td><td style="width:160px"><div class="bar"><i style="width:${v/tot*100*2.2}%"></i></div></td><td class="n">${(v/tot*100).toFixed(1)}%</td><td>${spark(d.scans)}</td></tr>`}).join('');
+  const k=kpis(m,period);
+  return `<div class="row">${kpiCard(L.scans,k.scans)}${kpiCard(L.active,k.act)}${kpiCard(L.avg,k.av,1)}</div>
+  <div class="card" style="margin-top:16px;height:496px"><div style="display:flex;align-items:center"><p class="h">${L.depots}</p><div class="seg">${[4,6].map(p=>`<button data-p="${p}" class="${p===period?'on':''}">${p} ${L.weeks}</button>`).join('')}</div></div>
+  <table><tr><th>${L.depot}</th><th class="n">${L.scans}</th><th></th><th class="n">${L.share}</th><th>${L.trend}</th></tr>${rows}</table></div>`;
+}
+function pCarriers(m){
+  const L=I18N[lang],car=m.carriers.map(c=>({n:c.name,v:sum(c.scans,W-period,W)})),tot=car.reduce((s,c)=>s+c.v,0);
+  return `<div class="row"><div class="card" style="width:760px;height:560px"><p class="h">${L.weightByCarrier}</p>${stacked(m.carriers,728,470)}<div class="legend">${CARRIERS.map((c,i)=>`<span style="--c:${CC[i]}">${c}</span>`).join('')}</div></div>
+  <div class="card" style="flex:1;height:560px"><div style="display:flex;align-items:center"><p class="h">${L.carrier}</p><div class="seg">${[4,6].map(p=>`<button data-p="${p}" class="${p===period?'on':''}">${p} ${L.weeks}</button>`).join('')}</div></div>
+  <table><tr><th>${L.carrier}</th><th class="n">${L.scans}</th><th class="n">${L.share}</th></tr>${car.map((c,i)=>`<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${CC[i]};margin-right:8px"></span>${c.n}</td><td class="n">${fmt(c.v)}</td><td class="n">${(c.v/tot*100).toFixed(1)}%</td></tr>`).join('')}</table></div></div>`;
+}
+function pQuality(m){
+  const L=I18N[lang],vals=INC.map((x,i)=>x*100+(x?0:.3)),peak=Math.max(...vals);
+  const card=(l,v,c='')=>`<div class="card kpi"><div class="l">${l}</div><div class="v ${c}">${v}</div></div>`;
+  return `<div class="row">${card(L.now,vals[W-1].toFixed(1)+'%','up')}${card(L.peak,peak.toFixed(1)+'%','down')}${card(L.weeksAff,INC.filter(x=>x).length)}</div>
+  <div class="row" style="margin-top:16px"><div class="card" style="width:820px;height:360px"><p class="h">${L.uPct}</p>${line(vals,788,296)}</div>
+  <div class="card" style="flex:1;height:360px"><p class="h">${L.insightT}</p><div class="note">${L.qNote}</div></div></div>
+  <div class="card" style="margin-top:16px;height:140px"><p class="h">${L.howT}</p><div class="row" style="gap:12px">${L.steps.map((s,i)=>`<div style="flex:1;border:1px solid var(--line);border-radius:8px;padding:10px 12px"><div style="font-size:11px;color:var(--teal);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${i+1}. ${s[0]}</div><div style="font-size:13px;margin-top:4px;line-height:1.4">${s[1]}</div></div>`).join('')}</div></div>`;
+}
+const PAGES={overview:pOverview,depots:pDepots,carriers:pCarriers,quality:pQuality};
+function render(){
+  const L=I18N[lang];
+  document.getElementById('t-title').textContent=L.title;
+  document.getElementById('nav').innerHTML=Object.keys(PAGES).map(p=>`<button data-page="${p}" class="${p===page?'on':''}">${L[p]}</button>`).join('');
+  const sel=document.getElementById('tenant');
+  sel.innerHTML=`<option value="all">${L.allTenants}</option>`+TENANTS.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');sel.value=tenantId;
+  document.getElementById('l-en').classList.toggle('on',lang==='en');document.getElementById('l-es').classList.toggle('on',lang==='es');
+  const body=document.getElementById('body');body.innerHTML=PAGES[page](model(tenantId))+`<span class="tag">${L.draft}</span>`;
+  body.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{period=+b.dataset.p;render()});
+}
+document.getElementById('nav').onclick=e=>{const b=e.target.closest('[data-page]');if(b){page=b.dataset.page;render()}};
+document.getElementById('tenant').onchange=e=>{tenantId=e.target.value;render()};
+document.getElementById('l-en').onclick=()=>{lang='en';render()};
+document.getElementById('l-es').onclick=()=>{lang='es';render()};
+function fit(){const c=document.getElementById('canvas'),w=document.getElementById('wrap');const s=Math.min(1,(w.clientWidth-16)/1280);c.style.transform=`scale(${s})`;w.style.height=(720*s+32)+'px'}
+const hp=new URLSearchParams(location.hash.slice(1));
+if(PAGES[hp.get('page')])page=hp.get('page');
+if(I18N[hp.get('lang')])lang=hp.get('lang');
+if(hp.get('tenant'))tenantId=hp.get('tenant');
+window.addEventListener('resize',fit);fit();render();
+</script>
+</body>
+</html>
